@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "AddObject Helper",
+    "name": "AddObject Helper2",
     "author": "CDMJ, Nezumi.blend",
     "version": (1, 00, 2),
     "blender": (3, 10, 0),
@@ -27,7 +27,7 @@ class ADDOBJECT_PG_add_object_helper(bpy.types.PropertyGroup):
         default=False,
     )
     my_obj_dimensions: bpy.props.FloatVectorProperty(
-        name="Dims",
+        name="Dimensions",
         description="Dimensions at unit scale",
         soft_min=0,
         soft_max=1000,
@@ -142,6 +142,7 @@ def unit_conversion(context, item_dims):
 class ADDOBJECT_OT_my_op(bpy.types.Operator):
     bl_label = "Add Object"
     bl_idname = "addobject.myop_operator"
+    bl_options = {'REGISTER', 'UNDO'}
 
     item_type: bpy.props.StringProperty(
         name="Mesh Primitive",
@@ -166,10 +167,22 @@ class ADDOBJECT_OT_my_op(bpy.types.Operator):
         return context.area.type == 'VIEW_3D'
 
     def execute(self, context):
+        scalable_objs = [
+            "primitive_cube_add",
+            "primitive_uv_sphere_add",
+            "primitive_cylinder_add",
+            "primitive_cone_add",
+        ]
         x, y, z = unit_conversion(context, Vector(self.item_dimensions))
-
-        cmd = f"bpy.ops.mesh.{self.item_type}(scale=({x}, {y}, {z}))"
-        ob = eval(cmd)
+        if self.item_type in scalable_objs:
+            cmd = f"bpy.ops.mesh.{self.item_type}(scale=({x}, {y}, {z}))"
+            ob = eval(cmd)
+        else:
+            cmd = f"bpy.ops.mesh.{self.item_type}()"
+            ob = eval(cmd)
+            ob = context.view_layer.objects.active
+            ob.dimensions = Vector((x, y, z)) * 2
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         context.view_layer.objects.active.name = self.item_name
         return {'FINISHED'}
 
